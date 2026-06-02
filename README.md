@@ -10,6 +10,7 @@ Pipeline: `Touch X (6-DoF pose)` → `RelaxedIK` → `intera_interface` → `Saw
 <p align="centre">
   <img src="touch.jpeg" alt="Alt Text" style="width:50%; height:auto;">
 </p> 
+
 press and hold **dark grey** while teleoperating. press **lighter grey** to open/close the gripper.
 
 ## RUN the code
@@ -120,3 +121,4 @@ once both terminals are running, you will notice that the touch has two button:
 ### `libGL error: failed to load driver: nouveau`
 Harmless — RViz can't get hardware OpenGL inside the container and falls back to software
 rendering. To silence it: `export LIBGL_ALWAYS_SOFTWARE=1`.
+
