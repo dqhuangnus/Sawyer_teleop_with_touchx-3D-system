@@ -7,7 +7,7 @@ ROS Noetic workspace for teleoperating a Rethink Robotics **Sawyer** arm with a
 Pipeline: `Touch X (6-DoF pose)` → `RelaxedIK` → `intera_interface` → `Sawyer`.
 
 ---
-<img src="touch.jpeg" alt="Alt Text" style= "width:50%; height = "auto;">
+<img src="touch.jpeg" alt="Alt Text" style="width:50%; height:auto;">
 press and hold dark grey while teleoperating. press lighter grey to open/close the gripper.
 
 ## RUN the code
