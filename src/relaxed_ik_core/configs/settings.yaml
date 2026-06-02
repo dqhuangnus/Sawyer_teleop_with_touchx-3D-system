@@ -1,0 +1,8 @@
+urdf: sawyer.urdf
+link_radius: 0.05 
+base_links:
+  - base_link
+ee_links:
+  - right_hand
+starting_config: [ 0.1001, -1.0716, -0.3894, 1.7071, 0.1720, 1.0877, 2.8392 ]
+obstacles:

@@ -1,0 +1,19 @@
+# Custom in-progress package — not pushed to GitHub
+src/touchx_relaxedik_bridge/
+# Rust build artifacts
+**/target/
+# catkin build outputs
+build/
+devel/
+install/
+logs/
+.catkin_tools/
+# Python
+__pycache__/
+*.pyc
+*.pyo
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store

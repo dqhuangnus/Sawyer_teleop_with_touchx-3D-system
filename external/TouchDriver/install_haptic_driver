@@ -1,0 +1,14 @@
+SUDO=''
+if (( $EUID != 0 )); then
+    echo "This script requires root access."
+    sudo -k
+    SUDO='sudo'
+fi
+
+
+$SUDO cp usr/lib/libPhantomIOLib42.so /usr/lib/libPhantomIOLib42.so
+$SUDO cp usr/lib/libPhantomManagerLite.so /usr/lib/libPhantomManagerLite.so
+
+$SUDO cp rules.d/*.rules /etc/udev/rules.d/
+
+$SUDO udevadm control --reload

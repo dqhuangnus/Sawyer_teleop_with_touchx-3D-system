@@ -1,0 +1,22 @@
+# TouchX Driver Node parameters (已移除自定义驱动，使用 omni_common)
+# touchx_driver:
+#   publish_rate: 100
+#   device_name: ""
+
+# Sawyer Teleoperation Node parameters
+sawyer_teleop:
+  position_scale: 3.0        # scale factor: TouchX delta [m] → robot delta [m]
+                             # TouchX usable workspace ~±40mm → robot ~±120mm
+
+  control_rate: 50.0         # Hz - IK solve and joint command rate
+
+  enabled_by_button: true    # true  = hold Button 1 on Touch X to enable motion
+                             # false = always track device pose (careful!)
+
+  orientation_control: false # false = fixed gripper orientation (recommended to start)
+                             # true  = map device orientation change to EE orientation
+
+  workspace_centre:          # Robot EE position [m] when device is at neutral (mm home)
+    - 0.70                   # x: ~70 cm in front of robot base
+    - 0.00                   # y: centred
+    - 0.20                   # z: ~20 cm above table

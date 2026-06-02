@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<!--
+  test_touchx_viz.launch — TouchX 遥操作 RViz 可视化（无需 Gazebo）
+  ==================================================================
+  前置: roslaunch omni_common omni_state.launch
+  启动: roslaunch touchx_sawyer_teleop test_touchx_viz.launch
+-->
+<launch>
+
+  <!-- 加载 URDF -->
+  <param name="robot_description"
+         command="$(find xacro)/xacro
+                  $(find touchx_sawyer_teleop)/urdf/sawyer_with_robotiq85.urdf.xacro
+                  gazebo:=false"/>
+
+  <!-- robot_state_publisher: /joint_states → TF -->
+  <node name="robot_state_publisher"
+        pkg="robot_state_publisher"
+        type="robot_state_publisher"
+        output="screen"/>
+
+  <!-- 遥操作 + 可视化 -->
+  <node name="test_touchx_teleop_viz"
+        pkg="touchx_sawyer_teleop"
+        type="test_touchx_teleop_viz.py"
+        output="screen">
+    <param name="position_scale" value="1.5"/>
+    <param name="control_rate"   value="50.0"/>
+    <param name="smooth_hz"      value="5.0"/>
+    <param name="roll_scale"     value="0.4"/>
+    <param name="pitch_scale"    value="0.4"/>
+    <param name="yaw_scale"      value="0.8"/>
+    <rosparam param="workspace_centre">[0.70, 0.00, 0.20]</rosparam>
+    <rosparam param="home_config">[0.1001, -1.0716, -0.3894, 1.7071, 0.1720, 1.0877, 2.8392]</rosparam>
+  </node>
+
+  <!-- RViz -->
+  <node name="rviz"
+        pkg="rviz"
+        type="rviz"
+        args="-d $(find touchx_sawyer_teleop)/rviz/teleop_viz.rviz"/>
+
+</launch>

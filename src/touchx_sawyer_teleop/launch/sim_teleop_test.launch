@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<!--
+  sim_teleop_test.launch
+  ======================
+  仿真遥操作测试启动文件（无需 TouchX 或实体机械臂）。
+
+  运行步骤：
+    ① 终端 1 — 启动 Gazebo Sawyer 仿真：
+        source /root/relaxed_ik_ws/devel/setup.bash
+        roslaunch sawyer_gazebo sawyer_world.launch
+
+    ② 终端 2 — 启动本测试节点（Gazebo 完全加载后）：
+        source /root/relaxed_ik_ws/devel/setup.bash
+        roslaunch touchx_sawyer_teleop sim_teleop_test.launch
+
+  或一键启动（含 Gazebo）：
+        roslaunch touchx_sawyer_teleop sim_teleop_test.launch with_gazebo:=true
+
+  话题：
+    订阅: /robot/joint_states               (sensor_msgs/JointState)
+    发布: /robot/limb/right/joint_command   (intera_core_msgs/JointCommand)
+
+  TF 查询: base → right_hand
+           （由 sawyer_world.launch 中的 robot_state_publisher 提供）
+-->
+<launch>
+
+  <!-- 是否同时启动 Gazebo（推荐分开终端，便于查看各自日志） -->
+  <arg name="with_gazebo" default="false"/>
+
+  <!-- 嵌入 Gazebo（with_gazebo:=true 时生效） -->
+  <include if="$(arg with_gazebo)"
+           file="$(find sawyer_gazebo)/launch/sawyer_world.launch">
+    <arg name="gui" value="true"/>
+  </include>
+
+  <!-- 仿真遥操作测试节点
+       • 生成仿真 TouchX 目标位置（task space）
+       • RelaxedIK 求逆解 → 关节角
+       • 发送关节命令到 Gazebo Sawyer
+       • TF 读取实际末端位置（正运动学结果）
+       • 打印期望/实际位置对比
+  -->
+  <node name="sim_teleop_test"
+        pkg="touchx_sawyer_teleop"
+        type="sim_teleop_test_node.py"
+        output="screen"
+        respawn="false"/>
+
+</launch>

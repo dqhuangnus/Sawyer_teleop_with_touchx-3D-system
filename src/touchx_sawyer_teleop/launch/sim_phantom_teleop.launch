@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<!--
+  sim_phantom_teleop.launch
+  =========================
+  Phantom Omni → Gazebo Sawyer 遥操作（仿真模式）。
+  使用真实 Phantom 设备控制 Gazebo 中的 Sawyer 机械臂。
+
+  运行步骤：
+    ① 终端 1 — 启动 Gazebo Sawyer 仿真：
+        source /root/relaxed_ik_ws/devel/setup.bash
+        roslaunch sawyer_gazebo sawyer_world.launch
+
+    ② 终端 2 — 启动 Phantom 设备驱动：
+        source /root/relaxed_ik_ws/devel/setup.bash
+        roslaunch omni_common omni_state.launch
+
+    ③ 终端 3 — 启动遥操作节点（Gazebo 完全加载后）：
+        source /root/relaxed_ik_ws/devel/setup.bash
+        roslaunch touchx_sawyer_teleop sim_phantom_teleop.launch
+
+  或包含 Gazebo 一键启动：
+        roslaunch touchx_sawyer_teleop sim_phantom_teleop.launch with_gazebo:=true
+
+  话题：
+    订阅: /phantom/pose                          (geometry_msgs/PoseStamped)
+    订阅: /phantom/button                        (omni_msgs/OmniButtonEvent)
+    发布: /robot/limb/right/joint_command         (intera_core_msgs/JointCommand)
+
+  操作方式：
+    按住 grey button → Phantom 设备控制 Gazebo Sawyer 运动
+    松开 grey button → 机械臂保持当前位姿
+-->
+<launch>
+
+  <!-- 是否同时启动 Gazebo（推荐分开终端，便于查看各自日志） -->
+  <arg name="with_gazebo" default="false"/>
+
+  <!-- 嵌入 Gazebo（with_gazebo:=true 时生效） -->
+  <include if="$(arg with_gazebo)"
+           file="$(find sawyer_gazebo)/launch/sawyer_world.launch">
+    <arg name="gui" value="true"/>
+  </include>
+
+  <!-- Phantom 遥操作节点（仿真模式） -->
+  <node name="sawyer_teleop"
+        pkg="touchx_sawyer_teleop"
+        type="sawyer_teleop_node.py"
+        output="screen"
+        respawn="false">
+    <param name="use_sim"            value="true"/>
+    <param name="position_scale"     value="3.0"/>
+    <param name="control_rate"       value="50.0"/>
+    <param name="filter_cutoff"      value="10.0"/>
+    <param name="enabled_by_button"  value="true"/>
+    <param name="orientation_control" value="false"/>
+    <rosparam param="workspace_centre">[0.70, 0.00, 0.20]</rosparam>
+  </node>
+
+</launch>

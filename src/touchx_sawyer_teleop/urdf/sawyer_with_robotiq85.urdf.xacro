@@ -1,0 +1,63 @@
+<?xml version="1.0" ?>
+<robot name="sawyer" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:arg name="gazebo"           default="false"/>
+  <xacro:arg name="pedestal"         default="true"/>
+  <xacro:arg name="static"           default="true"/>
+  <xacro:arg name="electric_gripper" default="false"/>
+
+  <xacro:include filename="$(find sawyer_description)/urdf/sawyer_base.urdf.xacro"/>
+
+  <xacro:include filename="$(find robotiq_2f_85_gripper_visualization)/urdf/robotiq_arg2f_85_model_macro.xacro"/>
+  <xacro:include filename="$(find robotiq_2f_85_gripper_visualization)/urdf/robotiq_arg2f.xacro"/>
+
+  <xacro:robotiq_arg2f_85 prefix=""/>
+<!--
+  <joint name="robotiq_base_joint" type="fixed">
+    <parent link="right_hand"/>
+    <child  link="robotiq_arg2f_base_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+-->
+
+  <!-- 4 cm cylindrical spacer between Sawyer wrist and Robotiq 85 gripper -->
+  <link name="gripper_spacer_link">
+    <visual>
+      <origin xyz="0 0 0.02" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.03" length="0.04"/>
+      </geometry>
+      <material name="dark_grey">
+        <color rgba="0.2 0.2 0.2 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.02" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.03" length="0.04"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.05"/>
+      <origin xyz="0 0 0.02"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0"
+               iyy="0.000001" iyz="0"
+               izz="0.000001"/>
+    </inertial>
+  </link>
+
+  <!-- Sawyer wrist → spacer -->
+  <joint name="wrist_to_spacer" type="fixed">
+    <parent link="right_hand"/>
+    <child  link="gripper_spacer_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Spacer → Robotiq 85 (shifted 4 cm down in Z) -->
+  <joint name="robotiq_base_joint" type="fixed">
+    <parent link="gripper_spacer_link"/>
+    <child  link="robotiq_arg2f_base_link"/>
+    <origin xyz="0 0 0.04" rpy="0 0 0"/>
+  </joint>
+
+</robot>

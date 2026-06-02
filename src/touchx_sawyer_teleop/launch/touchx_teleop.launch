@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<!--
+  TouchX to Sawyer Teleoperation Launch File
+
+  Usage (with robot):
+    roslaunch touchx_sawyer_teleop touchx_teleop.launch
+
+  Usage (driver only, for testing without Sawyer):
+    roslaunch touchx_sawyer_teleop touchx_teleop.launch sawyer_enabled:=false
+
+  Prerequisites:
+    1. Sawyer side:   source ~/relaxed_ik_ws/devel/setup.bash
+                      rosrun intera_interface enable_robot.py -e
+    2. Touch X side:  USB device connected, container started with USB passthrough
+-->
+<launch>
+  <arg name="sawyer_enabled" default="true" doc="Launch the Sawyer control node"/>
+  <arg name="params_file"    default="$(find touchx_sawyer_teleop)/config/teleop_params.yaml"/>
+
+  <!-- Load shared parameters -->
+  <rosparam file="$(arg params_file)" command="load"/>
+
+  <!-- TouchX 驱动使用 omni_common: roslaunch omni_common omni_state.launch -->
+
+  <!-- Sawyer Teleoperation Node: IK solve + joint command -->
+  <node if="$(arg sawyer_enabled)"
+        name="sawyer_teleop"
+        pkg="touchx_sawyer_teleop"
+        type="sawyer_teleop_node.py"
+        output="screen"
+        respawn="false">
+    <param name="position_scale"      value="3.0"/>
+    <param name="control_rate"        value="50.0"/>
+    <param name="enabled_by_button"   value="true"/>
+    <param name="orientation_control" value="false"/>
+    <rosparam param="workspace_centre">[0.70, 0.00, 0.20]</rosparam>
+    <!-- real_home_config 未设置时，启动时读取机械臂当前关节角作为 HOME -->
+    <!-- 安全限制：EE 只能在 HOME 位置周围 ±0.15m 范围内移动（调试完成后设为 0 解除） -->
+    <param name="workspace_radius" value="0.60"/>
+    <!-- 夹爪暂时禁用 -->
+    <param name="gripper_enabled" value="false"/>
+  </node>
+
+  <!-- Robotiq 2F-85 夹爪 action server（暂时禁用）
+  <include file="$(find robotiq_2f_gripper_control)/launch/robotiq_action_server.launch">
+    <arg name="comport" value="/dev/ttyUSB0"/>
+    <arg name="baud"    value="115200"/>
+    <arg name="stroke"  value="0.085"/>
+    <arg name="joint_name" value="finger_joint"/>
+  </include>
+  -->
+
+</launch>

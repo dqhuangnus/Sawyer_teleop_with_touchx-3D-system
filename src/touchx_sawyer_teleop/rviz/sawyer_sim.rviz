@@ -1,0 +1,44 @@
+Panels:
+  - Class: rviz/Displays
+    Name: Displays
+  - Class: rviz/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz/TF
+      Enabled: true
+      Name: TF
+      Show Arrows: false
+      Show Axes: true
+      Show Names: false
+      Update Interval: 0.1
+    - Class: rviz/RobotModel
+      Enabled: true
+      Name: RobotModel
+      Robot Description: robot_description
+    - Class: rviz/Marker
+      Enabled: true
+      Name: TeleopViz
+      Marker Topic: /teleop_viz
+  Global Options:
+    Background Color: 48; 48; 48
+    Fixed Frame: base
+    Frame Rate: 30
+  Tools:
+    - Class: rviz/MoveCamera
+    - Class: rviz/FocusCamera
+  Views:
+    Current:
+      Class: rviz/Orbit
+      Distance: 1.5
+      Focal Point:
+        X: 0.5
+        Y: 0
+        Z: 0.3
+      Name: Current View
+      Pitch: 0.5
+      Yaw: 3.14
+Window Geometry:
+  Width: 1200
+  Height: 800

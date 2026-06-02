@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>touchx_sawyer_teleop</name>
+  <version>0.1.0</version>
+  <description>
+    Teleoperation of Sawyer robot using 3D Systems Touch X haptic device.
+    Reads 6-DOF pose from the Touch X via OpenHaptics, solves inverse kinematics
+    with RelaxedIK, and streams joint commands to the Sawyer arm via intera_interface.
+  </description>
+
+  <maintainer email="user@example.com">User</maintainer>
+  <license>Apache 2.0</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>rospy</depend>
+  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>intera_interface</depend>
+  <depend>intera_core_msgs</depend>
+  <depend>actionlib</depend>
+  <depend>robotiq_2f_gripper_msgs</depend>
+  <depend>robotiq_2f_gripper_control</depend>
+
+  <exec_depend>python3</exec_depend>
+</package>
