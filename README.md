@@ -60,7 +60,7 @@ docker run -it --privileged --net=host \
   -w /root/sawyer_haptic_workspace \
   sawyer_haptic:latest
 ```
-
+#### step 5:
 Edit `intera.sh` — set `robot_hostname` to the robot IP and `your_ip` to your computer's IP. Then source it:
 
 ```bash
@@ -80,7 +80,7 @@ Terminal 1:
 ```bash
 roslaunch omni_common omni_state.launch
 ```
-
+#### step 6:
 Terminal 2:
 
 ```bash
