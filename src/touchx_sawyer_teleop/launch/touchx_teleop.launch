@@ -1,53 +1,70 @@
 <?xml version="1.0"?>
 <!--
-  TouchX to Sawyer Teleoperation Launch File
+  TouchX -> Sawyer teleop WITH integrated data collection (single command).
 
-  Usage (with robot):
-    roslaunch touchx_sawyer_teleop touchx_teleop.launch
-
-  Usage (driver only, for testing without Sawyer):
-    roslaunch touchx_sawyer_teleop touchx_teleop.launch sawyer_enabled:=false
+  Brings up: Touch X driver (omni_state) + robot_state_publisher + RViz +
+  the teleop node, which also records tactile-ACT episodes.
 
   Prerequisites:
-    1. Sawyer side:   source ~/relaxed_ik_ws/devel/setup.bash
-                      rosrun intera_interface enable_robot.py -e
-    2. Touch X side:  USB device connected, container started with USB passthrough
+    1. Sawyer powered + reachable, intera.sh sourced, robot enabled
+    2. TouchX USB connected
+    3. For tactile: start the XELA server first, in the container (see README
+       for the exact xela_server command and its port/ip flags).
+
+  Usage:
+    roslaunch touchx_sawyer_teleop touchx_teleop.launch
+
+  Keys (in this terminal):  h=home  r=record  f=finish+save  d=discard
+  Episodes are written to save_dir below (mount it out to keep them).
 -->
 <launch>
-  <arg name="sawyer_enabled" default="true" doc="Launch the Sawyer control node"/>
-  <arg name="params_file"    default="$(find touchx_sawyer_teleop)/config/teleop_params.yaml"/>
 
-  <!-- Load shared parameters -->
-  <rosparam file="$(arg params_file)" command="load"/>
-
-  <!-- TouchX 驱动使用 omni_common: roslaunch omni_common omni_state.launch -->
-
-  <!-- Sawyer Teleoperation Node: IK solve + joint command -->
-  <node if="$(arg sawyer_enabled)"
-        name="sawyer_teleop"
-        pkg="touchx_sawyer_teleop"
-        type="sawyer_teleop_node.py"
-        output="screen"
-        respawn="false">
-    <param name="position_scale"      value="3.0"/>
-    <param name="control_rate"        value="50.0"/>
-    <param name="enabled_by_button"   value="true"/>
-    <param name="orientation_control" value="false"/>
-    <rosparam param="workspace_centre">[0.70, 0.00, 0.20]</rosparam>
-    <!-- real_home_config 未设置时，启动时读取机械臂当前关节角作为 HOME -->
-    <!-- 安全限制：EE 只能在 HOME 位置周围 ±0.15m 范围内移动（调试完成后设为 0 解除） -->
-    <param name="workspace_radius" value="0.60"/>
-    <!-- 夹爪暂时禁用 -->
-    <param name="gripper_enabled" value="false"/>
-  </node>
-
-  <!-- Robotiq 2F-85 夹爪 action server（暂时禁用）
-  <include file="$(find robotiq_2f_gripper_control)/launch/robotiq_action_server.launch">
-    <arg name="comport" value="/dev/ttyUSB0"/>
-    <arg name="baud"    value="115200"/>
-    <arg name="stroke"  value="0.085"/>
-    <arg name="joint_name" value="finger_joint"/>
+  <!-- TouchX haptic driver -->
+  <include file="$(find omni_common)/launch/omni_state.launch">
+    <arg name="publish_rate" value="50"/>
   </include>
-  -->
+
+  <!-- URDF (Sawyer + Robotiq 2F-85) -->
+  <param name="robot_description"
+         command="$(find xacro)/xacro
+                  $(find touchx_sawyer_teleop)/urdf/sawyer_with_robotiq85.urdf.xacro
+                  gazebo:=false"/>
+
+  <!-- robot_state_publisher: /joint_states -> TF (node publishes /joint_states) -->
+  <node name="robot_state_publisher"
+        pkg="robot_state_publisher"
+        type="robot_state_publisher"
+        output="screen"/>
+
+  <!-- RViz -->
+  <node name="rviz" pkg="rviz" type="rviz"
+        args="-d $(find touchx_sawyer_teleop)/rviz/teleop_viz.rviz"/>
+
+  <!-- Teleop + recorder -->
+  <node name="test_touchx_teleop_viz"
+        pkg="touchx_sawyer_teleop"
+        type="test_touchx_teleop_viz.py"
+        output="screen">
+    <!-- teleop -->
+    <param name="position_scale" value="1.5"/>
+    <param name="control_rate"   value="50.0"/>
+    <param name="smooth_hz"      value="5.0"/>
+    <param name="roll_scale"     value="0.4"/>
+    <param name="pitch_scale"    value="0.4"/>
+    <param name="yaw_scale"      value="0.8"/>
+    <rosparam param="workspace_centre">[0.70, 0.00, 0.20]</rosparam>
+    <rosparam param="home_config">[0.1001, -1.0716, -0.3894, 1.7071, 0.1720, 1.0877, 2.8392]</rosparam>
+
+    <!-- data collection -->
+    <param name="record_enabled"   value="true"/>
+    <param name="record_rate"      value="20.0"/>
+    <param name="save_dir"         value="/root/collected_data"/>
+    <param name="xela_ws_url"      value="ws://localhost:5000"/>
+    <param name="camera_scale"     value="0.5"/>
+    <param name="camera_binning"   value="2"/>
+    <param name="camera_fps"       value="10"/>
+    <param name="record_realsense" value="false"/>
+    <rosparam param="camera_ips">{image_left: '192.168.1.130', image_right: '192.168.1.120', image_top: '192.168.1.100'}</rosparam>
+  </node>
 
 </launch>

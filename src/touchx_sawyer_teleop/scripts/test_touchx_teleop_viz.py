@@ -32,6 +32,16 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import ColorRGBA
 from visualization_msgs.msg import Marker, MarkerArray
 
+# Data-collection helpers (live alongside this script in scripts/).
+# Gracefully degrade if the capture deps (pypylon / websocket-client / h5py)
+# are not installed — teleop still works, recording is just disabled.
+try:
+    from sensors import TactileReader, BaslerCameraManager
+    from data_recorder import DataRecorder
+    _RECORDING_AVAILABLE = True
+except Exception:
+    _RECORDING_AVAILABLE = False
+
 
 # ── RelaxedIK solver ──────────────────────────────────────────────────────────
 RELAXED_IK_PATH     = '/root/sawyer_haptic_workspace/src/relaxed_ik_core'
@@ -224,6 +234,22 @@ class TeleopVizNode:
         self.pitch_scale = rospy.get_param('~pitch_scale', 0.8)
         self.yaw_scale   = rospy.get_param('~yaw_scale',   0.8)
 
+        # ── Data collection (Basler ×3 + uSkin tactile) ───────────────────
+        self.record_enabled   = rospy.get_param('~record_enabled', True)
+        self.record_rate      = rospy.get_param('~record_rate', 20.0)
+        self.save_dir         = rospy.get_param('~save_dir', '/root/collected_data')
+        self.xela_ws_url      = rospy.get_param('~xela_ws_url', 'ws://localhost:5000')
+        self.n_taxels         = rospy.get_param('~tactile_taxels', 24)
+        self.tac_hist         = rospy.get_param('~tactile_history', 5)
+        self.camera_ips       = rospy.get_param('~camera_ips', {
+            'image_left':  '192.168.1.130',
+            'image_right': '192.168.1.120',
+            'image_top':   '192.168.1.100'})
+        self.cam_scale        = rospy.get_param('~camera_scale',   0.5)
+        self.cam_binning      = rospy.get_param('~camera_binning', 2)
+        self.cam_fps          = rospy.get_param('~camera_fps',     10)
+        self.record_realsense = rospy.get_param('~record_realsense', False)
+
         # Bowl position: [x, y, z] of the flat base centre
         raw_bowl = rospy.get_param('~sensor_bowl_pos', [0.70, 0.0, 0.05])
         if isinstance(raw_bowl, str):
@@ -353,6 +379,12 @@ class TeleopVizNode:
         self.anchor_yaw     = None
         self.anchor_quat    = None
 
+        # Sensors + episode recorder (graceful if hardware/deps absent)
+        self.recorder  = None
+        self.recording = False
+        self.ep_count  = 0
+        self._init_recording()
+
         rospy.Subscriber('/phantom/pose',   PoseStamped,     self._on_haptic_pose, queue_size=1)
         rospy.Subscriber('/phantom/button', OmniButtonEvent, self._on_button,      queue_size=1)
         self.haptic_pub = rospy.Publisher('/phantom/force_feedback', OmniFeedback, queue_size=1)
@@ -369,6 +401,86 @@ class TeleopVizNode:
             cr * cp * sy - sr * sp * cy,
             cr * cp * cy + sr * sp * sy,
         ]
+
+    # ── Data collection: start sensors + build recorder ───────────────────────
+    def _init_recording(self):
+        if not self.record_enabled:
+            rospy.loginfo("[teleop] Recording disabled (record_enabled=false)")
+            return
+        if not _RECORDING_AVAILABLE:
+            rospy.logwarn("[teleop] Recording deps missing (pypylon/websocket/h5py) — disabled")
+            return
+
+        # uSkin tactile (xela_server websocket)
+        self.tactile = None
+        try:
+            self.tactile = TactileReader(ws_url=self.xela_ws_url,
+                                         n_per_finger=self.n_taxels,
+                                         history_len=self.tac_hist)
+            self.tactile.start()
+            rospy.loginfo("[teleop] Tactile reader started (%s)", self.xela_ws_url)
+        except Exception as e:
+            rospy.logwarn("[teleop] Tactile unavailable: %s", e)
+
+        # Basler GigE cameras
+        self.basler = None
+        try:
+            self.basler = BaslerCameraManager(self.camera_ips, scale=self.cam_scale,
+                                              binning=self.cam_binning, fps=self.cam_fps)
+            self.basler.start_bg()
+            rospy.loginfo("[teleop] Basler cameras: %s", self.basler.names)
+        except Exception as e:
+            rospy.logwarn("[teleop] Basler cameras unavailable: %s", e)
+
+        # RealSense (optional — off by default)
+        self.realsense = None
+        if self.record_realsense:
+            try:
+                from realsense_camera import RealSenseCamera
+                self.realsense = RealSenseCamera()
+                self.realsense.start_bg()
+                rospy.loginfo("[teleop] RealSense started")
+            except Exception as e:
+                rospy.logwarn("[teleop] RealSense unavailable: %s", e)
+
+        gripper = self.gripper if getattr(self, 'gripper_ready', False) else None
+        self.recorder = DataRecorder(
+            limb=self.arm, gripper=gripper, tactile=self.tactile,
+            basler=self.basler, realsense=self.realsense,
+            rate_hz=self.record_rate, save_dir=self.save_dir)
+        rospy.loginfo("[teleop] Recorder ready -> %s  (r=record  f=finish+save  d=discard)",
+                      self.save_dir)
+
+    def _handle_record_key(self, key):
+        if self.recorder is None:
+            rospy.logwarn_throttle(2.0, "[teleop] recording not available")
+            return
+        if key == 'r' and not self.recording:
+            self.recorder.start()
+            self.recording = True
+            rospy.loginfo("[teleop] >>> RECORDING episode")
+        elif key == 'f' and self.recording:
+            self.recorder.stop()
+            self.recording = False
+            path = self.recorder.save(tag="ep%03d" % self.ep_count)
+            if path:
+                self.ep_count += 1
+            rospy.loginfo("[teleop] <<< saved %d frames", len(self.recorder))
+        elif key == 'd' and self.recording:
+            self.recorder.stop()
+            self.recording = False
+            rospy.loginfo("[teleop] episode discarded")
+
+    def _shutdown_recording(self):
+        if self.recording and self.recorder is not None:
+            self.recorder.stop()
+        for obj in (getattr(self, 'tactile', None), getattr(self, 'basler', None),
+                    getattr(self, 'realsense', None)):
+            try:
+                if obj is not None:
+                    obj.stop()
+            except Exception:
+                pass
 
     # ── Send joint angles to robot and RViz ───────────────────────────────────
     def _send_joints(self, angles, move_robot=True):
@@ -653,6 +765,7 @@ class TeleopVizNode:
             self._main_loop()
         finally:
             termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_term)
+            self._shutdown_recording()
 
     def _main_loop(self):
         import sys, tty, termios, select
@@ -673,21 +786,24 @@ class TeleopVizNode:
         self.home_quat = home_ee_quat
         rospy.loginfo("[teleop] Home EE: [%.4f, %.4f, %.4f]", *home_ee_pos)
         rospy.loginfo("[teleop] Ready. Hold grey button to teleoperate. White button = gripper.")
+        rospy.loginfo("[teleop] Keys: h=home  r=record  f=finish+save  d=discard")
 
         rate = rospy.Rate(self.control_rate)
         while not rospy.is_shutdown():
 
-            # Press 'r' in the terminal to return to home
+            # Keyboard:  h=home  r=record  f=finish+save  d=discard
             if select.select([sys.stdin], [], [], 0)[0]:
-                key = sys.stdin.read(1)
-                if key.lower() == 'r':
-                    rospy.loginfo("[teleop] 'r' pressed — returning to home")
+                key = sys.stdin.read(1).lower()
+                if key == 'h':
+                    rospy.loginfo("[teleop] 'h' pressed — returning to home")
                     self._move_to_home()
                     with self.lock:
                         self.active        = False
                         self.anchor_haptic = None
                     self.current_joints  = list(self.home_joints)
                     self.smoothed_joints = list(self.home_joints)
+                elif key in ('r', 'f', 'd'):
+                    self._handle_record_key(key)
 
             # Snapshot shared state from callbacks
             with self.lock:

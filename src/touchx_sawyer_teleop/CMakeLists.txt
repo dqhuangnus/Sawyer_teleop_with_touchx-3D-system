@@ -16,6 +16,9 @@ catkin_package()
 
 catkin_install_python(PROGRAMS
   scripts/test_touchx_teleop_viz.py
+  scripts/sensors.py
+  scripts/realsense_camera.py
+  scripts/data_recorder.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

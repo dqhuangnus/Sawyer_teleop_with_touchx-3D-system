@@ -38,10 +38,30 @@ RUN apt-get update && apt-get install -y \
     libncurses5-dev \
     libncurses5 \
     freeglut3-dev \
+    python3-opencv \
     && rm -rf /var/lib/apt/lists/*
 
 
-RUN python3 -m pip install "numpy==1.17.4" "pyRobotiqGripper==1.0.1"
+# Python deps. numpy is bumped to 1.24.4 (the old 1.17.4 pin is incompatible
+# with h5py); this set is verified to run teleop + RelaxedIK + gripper + capture.
+#   pypylon          -> Basler GigE cameras (installed from Basler's cp38 wheel —
+#                       the 2.0.0rc1 rc is not on PyPI; bundles the pylon runtime)
+#   websocket-client -> uSkin tactile (connects to xela_server @ ws://localhost:5000)
+#   h5py             -> episode recording   (cv2 comes from apt python3-opencv)
+# RealSense (pyrealsense2) is intentionally NOT installed yet — capture is off by
+# default; `pip install pyrealsense2` when you enable record_realsense.
+# focal's stock pip (20.0.2) doesn't understand the manylinux_2_28 tag on the
+# pypylon wheel — upgrade pip ONLY. (Do not upgrade setuptools: catkin's
+# interrogate_setup_dot_py.py needs the apt setuptools, which is pinned to the
+# old importlib_metadata; a newer setuptools breaks catkin_make.)
+RUN python3 -m pip install --upgrade pip
+RUN python3 -m pip install \
+        "numpy==1.24.4" \
+        "pyRobotiqGripper==1.0.1" \
+        "https://github.com/basler/pypylon/releases/download/2.0.0rc1/pypylon-2.0.0rc1-cp38-cp38-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl" \
+        "websocket-client==1.8.0" \
+        "h5py==3.11.0" \
+        "pyyaml"
 
 # Rust toolchain for relaxed_ik_core (pure-Rust crate, not built by catkin_make)
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
@@ -83,6 +103,26 @@ RUN echo "/usr/lib/TouchLibs" >> /etc/ld.so.conf.d/touchlibs.conf && \
 
 ENV OH_SDK_BASE=/opt/OpenHaptics
 ENV LD_LIBRARY_PATH=/usr/lib/TouchLibs:${LD_LIBRARY_PATH:-}
+
+# -----------------------------
+# 3b. XELA / uSkin tactile server (proprietary, supplied by user)
+# -----------------------------
+# The uSkin websocket server (ws://localhost:5000) is vendor software, not
+# redistributed via git. Before building, place the XELA server binary and its
+# config under ./external/Xela/ (see README.md):
+#     external/Xela/xela_server   -> /usr/local/bin/xela_server  (~57 MB binary)
+#     external/Xela/xServ.ini      -> /etc/xela/xServ.ini         (sensor config)
+# Start it at runtime with:  xela_server -f /etc/xela/xServ.ini --port 5000 --ip 0.0.0.0
+# Build still succeeds without these — only tactile capture is unavailable.
+COPY external/Xela/ /tmp/xela/
+RUN if [ -f /tmp/xela/xela_server ]; then \
+        install -m 0755 /tmp/xela/xela_server /usr/local/bin/xela_server && \
+        mkdir -p /etc/xela && \
+        ([ -f /tmp/xela/xServ.ini ] && cp /tmp/xela/xServ.ini /etc/xela/xServ.ini || true) && \
+        echo "[build] XELA server installed"; \
+    else \
+        echo "[build] external/Xela/xela_server absent — tactile server not installed"; \
+    fi && rm -rf /tmp/xela
 
 # -----------------------------
 # 4. rosdep + build workspace
