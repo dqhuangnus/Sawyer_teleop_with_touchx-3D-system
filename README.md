@@ -77,8 +77,6 @@ docker run -it --privileged --net=host \
 source devel/setup.bash
 nano intera.sh            # set robot_hostname (robot IP) and your_ip (this PC)
 source intera.sh
-rostopic list             # verify comms
-rosrun intera_interface enable_robot.py -e
 ```
 
 **E. Container — tactile server + teleop/record (two terminals)**
