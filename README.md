@@ -50,12 +50,13 @@ once fixed, repeat the **step 3** again.
 xhost +local:root
 
 docker run -it --privileged --net=host \
-  -e DISPLAY=$DISPLAY \
-  -e QT_X11_NO_MITSHM=1 \
+  --name sawyer_haptic \
+  -e DISPLAY=$DISPLAY -e QT_X11_NO_MITSHM=1 \
   -v /tmp/.X11-unix:/tmp/.X11-unix \
   -v $REPO_PATH/Sawyer_teleop_with_touchx-3D-system/external/OpenHaptics:/opt/OpenHaptics:ro \
   -v $REPO_PATH/Sawyer_teleop_with_touchx-3D-system/external/TouchDriver:/root/TouchDriver_2024_09_19:ro \
   -v $REPO_PATH/Sawyer_teleop_with_touchx-3D-system/external/TouchLibs:/usr/lib/TouchLibs:ro \
+  -v $REPO_PATH/Sawyer_teleop_with_touchx-3D-system/collected_data:/root/collected_data \
   -v /dev/bus/usb:/dev/bus/usb \
   -w /root/sawyer_haptic_workspace \
   sawyer_haptic:latest
