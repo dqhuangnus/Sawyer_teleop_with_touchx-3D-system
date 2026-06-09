@@ -155,7 +155,11 @@ class BaslerCameraManager:
                         cam.BinningHorizontal.Value = self.binning
                         cam.BinningVertical.Value = self.binning
                     except Exception as e:
-                        print("[camera] %s: binning=%d rejected (%s)" % (name, self.binning, e))
+                        # Colour (Bayer) ace cameras don't expose binning; it is
+                        # only writable in a Mono pixel format. Fall back to the
+                        # software scale below instead.
+                        print("[camera] %s: binning=%d unavailable (colour mode?) — "
+                              "using software scale only (%s)" % (name, self.binning, e))
 
                 cam.GevSCPSPacketSize.Value = packet_size
                 try:
@@ -169,7 +173,13 @@ class BaslerCameraManager:
                 if fps is not None:
                     try:
                         cam.AcquisitionFrameRateEnable.Value = True
-                        cam.AcquisitionFrameRate.Value = float(fps)
+                        # ace classic GigE (e.g. acA1920-40gc) exposes the float
+                        # node AcquisitionFrameRateAbs; ace 2 / newer SFNC use
+                        # AcquisitionFrameRate. Pick whichever exists.
+                        if hasattr(cam, "AcquisitionFrameRateAbs"):
+                            cam.AcquisitionFrameRateAbs.Value = float(fps)
+                        else:
+                            cam.AcquisitionFrameRate.Value = float(fps)
                     except Exception as e:
                         print("[camera] %s: fps=%s rejected (%s)" % (name, fps, e))
 
