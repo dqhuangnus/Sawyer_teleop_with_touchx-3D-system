@@ -74,9 +74,8 @@ class DataRecorder:
         if self.gripper is None:
             return self._grip_cache
         try:
-            self.gripper.readStatus()
-            gPO = self.gripper.status.get("gPO", 0)
-            self._grip_cache = 1.0 - gPO / 255.0   # 1.0 open, 0.0 closed
+            gPO = self.gripper.getPosition()       # actual position, 0..255 (0=open, 255=closed)
+            self._grip_cache = 1.0 - gPO / 255.0   # normalized aperture: 1.0 open, 0.0 closed
         except Exception:
             pass
         return self._grip_cache
