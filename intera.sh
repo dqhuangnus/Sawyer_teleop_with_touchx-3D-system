@@ -19,7 +19,7 @@ unset your_hostname
 # will be overwritten by any variables set here.
 
 # Specify Robot's hostname
-robot_hostname="192.168.x.xxx"
+robot_hostname="192.168.1.3"
 
 # Set *Either* your computers ip address or hostname. Please note if using
 # your_hostname that this must be resolvable to the Robot.
