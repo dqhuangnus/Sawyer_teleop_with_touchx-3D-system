@@ -36,16 +36,19 @@ Plus `action_pos` (T,3), `action_quat` (T,4), `gripper` (T,1), `joint_state` (T,
 **A. Host — one-time prep**
 ```bash
 export REPO_PATH=$HOME/rpl_sawyer
-cd $REPO_PATH/Sawyer_teleop_with_touchx-3D-system
+mkdir -p $REPO_PATH
+cd $REPO_PATH
+git clone https://github.com/dqhuangnus/Sawyer_teleop_with_touchx-3D-system.git
 
 # proprietary deps under external/ :
 #   external/OpenHaptics, external/TouchDriver, external/TouchLibs  (3D Systems)
 #   external/Xela/xela_server + external/Xela/xServ.ini            (XELA uSkin server)
-
 cd external/TouchDriver && ./install_haptic_driver && cd ../..   # Touch X udev rules
+```
+
+```bash
 bash reset_can.sh
 bash setup_can.sh                                                 # uSkin CAN bus up
-xhost +local:root                                                 # allow RViz GUI
 ```
 
 **B. Build**
@@ -55,6 +58,7 @@ docker build -t sawyer_haptic .
 
 **C. Run** (add a `collected_data` volume so episodes land on the host)
 ```bash
+xhost +local:root                                                 # allow RViz GUI
 docker run -it --privileged --net=host \
   --name sawyer_haptic \
   -e DISPLAY=$DISPLAY -e QT_X11_NO_MITSHM=1 \
