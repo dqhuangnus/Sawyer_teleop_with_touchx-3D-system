@@ -175,8 +175,8 @@ The two terminals must be inside the **same** container. Open the second one wit
 # terminal 1 (the `docker run` shell above) — uSkin websocket server, leave running:
 xela_server -f /etc/xela/xServ.ini --port 5000 --ip 0.0.0.0
 
-# terminal 2 — attach to the same container, then launch teleop + cameras + recorder:
-docker exec -it <container_name_or_id> bash
+# terminal 2 — attach to the same container:
+docker exec -it sawyer_haptic bash
 source devel/setup.bash && source intera.sh
 roslaunch touchx_sawyer_teleop touchx_teleop.launch
 ```
@@ -221,4 +221,3 @@ Files are written to `collected_data/episode_<timestamp>_epNNN.hdf5` on the host
 ### `libGL error: failed to load driver: nouveau`
 Harmless — RViz can't get hardware OpenGL inside the container and falls back to software
 rendering. To silence it: `export LIBGL_ALWAYS_SOFTWARE=1`.
-
