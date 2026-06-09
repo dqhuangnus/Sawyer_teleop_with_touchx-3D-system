@@ -35,11 +35,19 @@ from visualization_msgs.msg import Marker, MarkerArray
 # Data-collection helpers (live alongside this script in scripts/).
 # Gracefully degrade if the capture deps (pypylon / websocket-client / h5py)
 # are not installed — teleop still works, recording is just disabled.
+# Ensure the *source* scripts/ dir (with the real sensors.py / data_recorder.py)
+# wins over catkin's devel/lib relay wrappers, which can't be imported as modules.
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+if _SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPT_DIR)
 try:
     from sensors import TactileReader, BaslerCameraManager
     from data_recorder import DataRecorder
     _RECORDING_AVAILABLE = True
 except Exception:
+    import traceback
+    sys.stderr.write("\n[teleop] recording import failed (python=%s):\n" % sys.executable)
+    traceback.print_exc()
     _RECORDING_AVAILABLE = False
 
 
@@ -244,7 +252,7 @@ class TeleopVizNode:
         self.camera_ips       = rospy.get_param('~camera_ips', {
             'image_left':  '192.168.1.130',
             'image_right': '192.168.1.120',
-            'image_top':   '192.168.1.131'})
+            'image_top':   '192.168.1.100'})
         self.cam_scale        = rospy.get_param('~camera_scale',   0.5)
         self.cam_binning      = rospy.get_param('~camera_binning', 2)
         self.cam_fps          = rospy.get_param('~camera_fps',     10)
