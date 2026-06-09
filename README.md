@@ -20,7 +20,7 @@ press and hold **dark grey** while teleoperating. press **lighter grey** to open
 export REPO_PATH=$HOME/rpl_sawyer
 mkdir -p $REPO_PATH
 cd $REPO_PATH
-git clone https://github.com/EvaEkhteyary/Sawyer_teleop_with_touchx-3D-system.git
+git clone https://github.com/dqhuangnus/Sawyer_teleop_with_touchx-3D-system.git
 cd Sawyer_teleop_with_touchx-3D-system
 ```
 
