@@ -43,7 +43,8 @@ cd $REPO_PATH/Sawyer_teleop_with_touchx-3D-system
 #   external/Xela/xela_server + external/Xela/xServ.ini            (XELA uSkin server)
 
 cd external/TouchDriver && ./install_haptic_driver && cd ../..   # Touch X udev rules
-sudo ip link set can0 up type can bitrate 1000000                # uSkin CAN bus up
+bash reset_can.sh
+bash setup_can.sh                                                 # uSkin CAN bus up
 xhost +local:root                                                 # allow RViz GUI
 ```
 
