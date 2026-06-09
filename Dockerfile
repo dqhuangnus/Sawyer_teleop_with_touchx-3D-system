@@ -39,6 +39,7 @@ RUN apt-get update && apt-get install -y \
     libncurses5 \
     freeglut3-dev \
     python3-opencv \
+    libfuse2 \
     && rm -rf /var/lib/apt/lists/*
 
 
