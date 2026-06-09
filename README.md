@@ -145,6 +145,7 @@ docker build -t sawyer_haptic .
 **C. Run** (add a `collected_data` volume so episodes land on the host)
 ```bash
 docker run -it --privileged --net=host \
+  --name sawyer_haptic \
   -e DISPLAY=$DISPLAY -e QT_X11_NO_MITSHM=1 \
   -v /tmp/.X11-unix:/tmp/.X11-unix \
   -v $REPO_PATH/Sawyer_teleop_with_touchx-3D-system/external/OpenHaptics:/opt/OpenHaptics:ro \
