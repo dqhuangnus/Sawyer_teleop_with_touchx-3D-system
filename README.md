@@ -39,7 +39,7 @@ export REPO_PATH=$HOME/rpl_sawyer
 mkdir -p $REPO_PATH
 cd $REPO_PATH
 git clone https://github.com/dqhuangnus/Sawyer_teleop_with_touchx-3D-system.git
-
+cd Sawyer_teleop_with_touchx-3D-system
 # proprietary deps under external/ :
 #   external/OpenHaptics, external/TouchDriver, external/TouchLibs  (3D Systems)
 #   external/Xela/xela_server + external/Xela/xServ.ini            (XELA uSkin server)
