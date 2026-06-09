@@ -60,11 +60,14 @@
     <param name="record_rate"      value="20.0"/>
     <param name="save_dir"         value="/root/collected_data"/>
     <param name="xela_ws_url"      value="ws://localhost:5000"/>
-    <param name="camera_scale"     value="0.5"/>
-    <param name="camera_binning"   value="2"/>
+    <!-- acA1920-40gc are colour (Bayer) cameras: in-camera binning is NOT
+         available in colour mode, so downscale 1920x1200 -> 480x300 purely in
+         software (scale 0.25). Keep binning=1 to skip the unsupported attempt. -->
+    <param name="camera_scale"     value="0.25"/>
+    <param name="camera_binning"   value="1"/>
     <param name="camera_fps"       value="10"/>
     <param name="record_realsense" value="false"/>
-    <rosparam param="camera_ips">{image_left: '192.168.1.130', image_right: '192.168.1.120', image_top: '192.168.1.100'}</rosparam>
+    <rosparam param="camera_ips">{image_left: '192.168.1.130', image_right: '192.168.1.120', image_top: '192.168.1.131'}</rosparam>
   </node>
 
 </launch>
