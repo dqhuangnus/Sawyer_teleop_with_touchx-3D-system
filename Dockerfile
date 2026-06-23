@@ -93,10 +93,10 @@ COPY external/TouchDriver/                  /root/TouchDriver_2024_09_19/
 COPY external/TouchLibs/                    /usr/lib/TouchLibs/
 
 RUN echo "/usr/lib/TouchLibs" >> /etc/ld.so.conf.d/touchlibs.conf && \
-    ln -sf /usr/lib/TouchLibs/libHD.so.3.4.0          /usr/lib/libHD.so && \
-    ln -sf /usr/lib/TouchLibs/libHD.so.3.4.0          /usr/lib/libHD.so.3 && \
-    ln -sf /usr/lib/TouchLibs/libHL.so.3.4.0          /usr/lib/libHL.so && \
-    ln -sf /usr/lib/TouchLibs/libHL.so.3.4.0          /usr/lib/libHL.so.3 && \
+    ln -sf /usr/lib/TouchLibs/libHD.so.3.4          /usr/lib/libHD.so && \
+    ln -sf /usr/lib/TouchLibs/libHD.so.3.4          /usr/lib/libHD.so.3 && \
+    ln -sf /usr/lib/TouchLibs/libHL.so.3.4          /usr/lib/libHL.so && \
+    ln -sf /usr/lib/TouchLibs/libHL.so.3.4          /usr/lib/libHL.so.3 && \
     ln -sf /usr/lib/TouchLibs/libPhantomIOLib42.so    /usr/lib/libPhantomIOLib42.so && \
     ln -sf /usr/lib/TouchLibs/libPhantomManagerLite.so /usr/lib/libPhantomManagerLite.so && \
     cp    /usr/lib/TouchLibs/libHDU.a                 /usr/lib/libHDU.a && \
