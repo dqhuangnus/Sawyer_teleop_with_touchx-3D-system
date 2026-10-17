@@ -23,13 +23,16 @@ captures synchronised sensor + robot state into `episode_*.hdf5` files in the
 
 | Sensor | Package (in image) | Interface | HDF5 keys |
 |--------|--------------------|-----------|-----------|
-| Basler ×3 (GigE) | `pypylon` | by IP over `--net=host` | `image_left/right/top` (T,300,480,3) |
+| Basler ×3 (GigE) | `pypylon` | by IP over `--net=host`: left `192.168.1.130`, right `192.168.1.120`, top `192.168.1.131` | `image_left/right/top` (T,300,480,3) |
 | uSkin (2 fingers) | `websocket-client` → `xela_server` | SocketCAN → `ws://localhost:5000` | `tactile_1/2` (T,5,24,3) |
-| Intel RealSense *(off by default)* | `pyrealsense2` | USB | `image_realsense` (T,480,640,3) + `depth_realsense` (T,480,640) |
+| Intel RealSense | `ros-noetic-realsense2-camera` (apt) | USB → ROS topics `/camera/color/image_raw`, `/camera/aligned_depth_to_color/image_raw` | `image_realsense` (T,480,640,3) + `depth_realsense` (T,480,640, uint16 mm) |
 
 Plus `action_pos` (T,3), `action_quat` (T,4), `gripper` (T,1), `joint_state` (T,7),
-`timestamp` (T). RealSense is disabled by default — set `record_realsense:=true` in
-[touchx_teleop.launch](src/touchx_sawyer_teleop/launch/touchx_teleop.launch) to add it.
+`timestamp` (T). The RealSense is **on by default**: the launch starts `realsense2_camera`
+(color + depth aligned to color, 640×480 @ 30 fps) and the recorder subscribes to its topics.
+To record without it: `roslaunch touchx_sawyer_teleop touchx_teleop.launch record_realsense:=false`.
+Basler IPs are set in `camera_ips` in
+[touchx_teleop.launch](src/touchx_sawyer_teleop/launch/touchx_teleop.launch).
 
 ### Full workflow
 
@@ -108,8 +111,8 @@ Files are written to `collected_data/episode_<timestamp>_epNNN.hdf5` on the host
 
 ### Troubleshooting collection
 - **Tactile all zeros / `tactile_1/2` empty** → `can0` not up on host, or `xela_server` not started first.
-- **No camera images** → Basler IPs / subnet wrong (cameras must be reachable; `--net=host` already shares the network).
-- **RealSense needed** → set `record_realsense:=true` in the launch (USB passthrough already provided by `--privileged` + `/dev/bus/usb`).
+- **No camera images** → Basler IPs / subnet wrong. Expected `192.168.1.130` (left), `.120` (right), `.131` (top); check with `ping` from the container (`--net=host` already shares the network).
+- **No RealSense data / `[realsense] no frames on ...`** → check the camera is on a USB 3 port and visible (`rs-enumerate-devices`, or `rostopic hz /camera/color/image_raw`). USB passthrough comes from `--privileged` + `/dev/bus/usb`. If you rebuilt from an older image, rebuild so `ros-noetic-realsense2-camera` is installed.
 
 ---
 

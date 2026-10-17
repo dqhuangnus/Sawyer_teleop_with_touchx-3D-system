@@ -23,5 +23,7 @@
   <depend>robotiq_2f_gripper_msgs</depend>
   <depend>robotiq_2f_gripper_control</depend>
 
+  <exec_depend>cv_bridge</exec_depend>
+  <exec_depend>realsense2_camera</exec_depend>
   <exec_depend>python3</exec_depend>
 </package>

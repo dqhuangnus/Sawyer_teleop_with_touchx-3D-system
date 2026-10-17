@@ -1,68 +1,71 @@
-"""Intel RealSense (color + aligned depth) with a background latest-frame cache.
+"""Intel RealSense (color + aligned depth) via the realsense2_camera ROS node.
+
+The camera itself is driven by `realsense2_camera` (apt: ros-noetic-realsense2-camera,
+started from touchx_teleop.launch with align_depth:=true). This class only
+subscribes to its topics and caches the latest frame of each stream.
 
 Mirrors the BaslerCameraManager API (start_bg / get_color / get_depth / stop)
-so the recorder treats every camera the same way. Depth is aligned to the
-color stream, so colour pixel (u,v) and depth pixel (u,v) correspond.
+so the recorder treats every camera the same way. Depth is the
+`aligned_depth_to_color` stream, so colour pixel (u,v) and depth pixel (u,v)
+correspond.
 
 Color: (HEIGHT, WIDTH, 3) uint8 BGR
 Depth: (HEIGHT, WIDTH)    uint16 millimetres
 """
 
 import threading
-import time
 
 import numpy as np
 
 
 class RealSenseCamera:
-    def __init__(self, width=640, height=480, fps=30):
-        import pyrealsense2 as rs  # lazy import
-        self._rs = rs
-        self.width = int(width)
-        self.height = int(height)
-        self.fps = int(fps)
-        self._pipe = None
-        self._align = None
+    def __init__(self,
+                 color_topic="/camera/color/image_raw",
+                 depth_topic="/camera/aligned_depth_to_color/image_raw"):
+        import rospy                       # lazy import
+        from cv_bridge import CvBridge
+        from sensor_msgs.msg import Image
+        self._rospy = rospy
+        self._Image = Image
+        self._bridge = CvBridge()
+        self.color_topic = color_topic
+        self.depth_topic = depth_topic
+        self._subs = []
         self._color = None
         self._depth = None
         self._lock = threading.Lock()
-        self._running = False
 
-    def _open(self):
-        rs = self._rs
-        pipe = rs.pipeline()
-        cfg = rs.config()
-        cfg.enable_stream(rs.stream.color, self.width, self.height, rs.format.bgr8, self.fps)
-        cfg.enable_stream(rs.stream.depth, self.width, self.height, rs.format.z16, self.fps)
-        pipe.start(cfg)
-        for _ in range(5):          # warm up — first frames are unreliable
-            pipe.wait_for_frames()
-        self._pipe = pipe
-        self._align = rs.align(rs.stream.color)
-        print("[realsense] streaming %dx%d @ %dfps (color+depth aligned)"
-              % (self.width, self.height, self.fps))
+    def start_bg(self, wait_timeout=10.0):
+        rospy = self._rospy
+        self._subs = [
+            rospy.Subscriber(self.color_topic, self._Image, self._on_color,
+                             queue_size=1, buff_size=2 ** 24),
+            rospy.Subscriber(self.depth_topic, self._Image, self._on_depth,
+                             queue_size=1, buff_size=2 ** 24),
+        ]
+        # Wait for the first color frame so a missing camera is reported early.
+        try:
+            rospy.wait_for_message(self.color_topic, self._Image, timeout=wait_timeout)
+            print("[realsense] receiving %s + %s" % (self.color_topic, self.depth_topic))
+        except rospy.ROSException:
+            print("[realsense] no frames on %s after %.0fs — is realsense2_camera running?"
+                  % (self.color_topic, wait_timeout))
 
-    def start_bg(self):
-        self._open()
-        self._running = True
-        threading.Thread(target=self._loop, daemon=True).start()
+    def _on_color(self, msg):
+        try:
+            color = self._bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+        except Exception:
+            return
+        with self._lock:
+            self._color = color
 
-    def _loop(self):
-        while self._running:
-            try:
-                fs = self._pipe.wait_for_frames(5000)
-                fs = self._align.process(fs)
-                c = fs.get_color_frame()
-                d = fs.get_depth_frame()
-                if not c or not d:
-                    continue
-                color = np.asanyarray(c.get_data())
-                depth = np.asanyarray(d.get_data())
-                with self._lock:
-                    self._color = color
-                    self._depth = depth
-            except Exception:
-                time.sleep(0.05)
+    def _on_depth(self, msg):
+        try:
+            depth = self._bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
+        except Exception:
+            return
+        with self._lock:
+            self._depth = np.asarray(depth, dtype=np.uint16)
 
     def get_color(self):
         with self._lock:
@@ -77,11 +80,9 @@ class RealSenseCamera:
             return self._color is not None
 
     def stop(self):
-        self._running = False
-        if self._pipe is not None:
+        for s in self._subs:
             try:
-                self._pipe.stop()
+                s.unregister()
             except Exception:
                 pass
-            self._pipe = None
-            self._align = None
+        self._subs = []

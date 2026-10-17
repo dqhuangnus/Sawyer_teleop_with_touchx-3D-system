@@ -252,11 +252,15 @@ class TeleopVizNode:
         self.camera_ips       = rospy.get_param('~camera_ips', {
             'image_left':  '192.168.1.130',
             'image_right': '192.168.1.120',
-            'image_top':   '192.168.1.100'})
+            'image_top':   '192.168.1.131'})
         self.cam_scale        = rospy.get_param('~camera_scale',   0.5)
         self.cam_binning      = rospy.get_param('~camera_binning', 2)
         self.cam_fps          = rospy.get_param('~camera_fps',     10)
-        self.record_realsense = rospy.get_param('~record_realsense', False)
+        self.record_realsense = rospy.get_param('~record_realsense', True)
+        self.rs_color_topic   = rospy.get_param('~realsense_color_topic',
+                                                '/camera/color/image_raw')
+        self.rs_depth_topic   = rospy.get_param('~realsense_depth_topic',
+                                                '/camera/aligned_depth_to_color/image_raw')
 
         # Bowl position: [x, y, z] of the flat base centre
         raw_bowl = rospy.get_param('~sensor_bowl_pos', [0.70, 0.0, 0.05])
@@ -440,14 +444,16 @@ class TeleopVizNode:
         except Exception as e:
             rospy.logwarn("[teleop] Basler cameras unavailable: %s", e)
 
-        # RealSense (optional — off by default)
+        # RealSense (frames come from the realsense2_camera ROS node)
         self.realsense = None
         if self.record_realsense:
             try:
                 from realsense_camera import RealSenseCamera
-                self.realsense = RealSenseCamera()
+                self.realsense = RealSenseCamera(color_topic=self.rs_color_topic,
+                                                 depth_topic=self.rs_depth_topic)
                 self.realsense.start_bg()
-                rospy.loginfo("[teleop] RealSense started")
+                rospy.loginfo("[teleop] RealSense subscribed (%s, %s)",
+                              self.rs_color_topic, self.rs_depth_topic)
             except Exception as e:
                 rospy.logwarn("[teleop] RealSense unavailable: %s", e)
 

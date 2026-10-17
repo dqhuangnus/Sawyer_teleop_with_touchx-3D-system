@@ -14,15 +14,37 @@
   Usage:
     roslaunch touchx_sawyer_teleop touchx_teleop.launch
 
+  RealSense is started here via realsense2_camera (aligned depth). Disable with
+    roslaunch touchx_sawyer_teleop touchx_teleop.launch record_realsense:=false
+
   Keys (in this terminal):  h=home  r=record  f=finish+save  d=discard
   Episodes are written to save_dir below (mount it out to keep them).
 -->
 <launch>
 
+  <arg name="record_realsense" default="true"/>
+
   <!-- TouchX haptic driver -->
   <include file="$(find omni_common)/launch/omni_state.launch">
     <arg name="publish_rate" value="50"/>
   </include>
+
+  <!-- Intel RealSense (ros-noetic-realsense2-camera): color + depth aligned to
+       color, 640x480 @ 30fps. Publishes /camera/color/image_raw and
+       /camera/aligned_depth_to_color/image_raw, read by the recorder. -->
+  <group if="$(arg record_realsense)">
+    <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+      <arg name="align_depth"   value="true"/>
+      <arg name="color_width"   value="640"/>
+      <arg name="color_height"  value="480"/>
+      <arg name="color_fps"     value="30"/>
+      <arg name="depth_width"   value="640"/>
+      <arg name="depth_height"  value="480"/>
+      <arg name="depth_fps"     value="30"/>
+      <arg name="enable_infra1" value="false"/>
+      <arg name="enable_infra2" value="false"/>
+    </include>
+  </group>
 
   <!-- URDF (Sawyer + Robotiq 2F-85) -->
   <param name="robot_description"
@@ -66,7 +88,10 @@
     <param name="camera_scale"     value="0.25"/>
     <param name="camera_binning"   value="1"/>
     <param name="camera_fps"       value="10"/>
-    <param name="record_realsense" value="false"/>
+    <param name="record_realsense" value="$(arg record_realsense)"/>
+    <param name="realsense_color_topic" value="/camera/color/image_raw"/>
+    <param name="realsense_depth_topic" value="/camera/aligned_depth_to_color/image_raw"/>
+    <!-- Basler GigE IPs: left=.130, right=.120, top=.131 -->
     <rosparam param="camera_ips">{image_left: '192.168.1.130', image_right: '192.168.1.120', image_top: '192.168.1.131'}</rosparam>
   </node>
 

@@ -34,6 +34,7 @@ RUN apt-get update && apt-get install -y \
     ros-noetic-gazebo-ros \
     ros-noetic-gazebo-msgs \
     ros-noetic-joint-state-publisher \
+    ros-noetic-realsense2-camera \
     libusb-1.0-0-dev \
     libncurses5-dev \
     libncurses5 \
@@ -49,8 +50,9 @@ RUN apt-get update && apt-get install -y \
 #                       the 2.0.0rc1 rc is not on PyPI; bundles the pylon runtime)
 #   websocket-client -> uSkin tactile (connects to xela_server @ ws://localhost:5000)
 #   h5py             -> episode recording   (cv2 comes from apt python3-opencv)
-# RealSense (pyrealsense2) is intentionally NOT installed yet — capture is off by
-# default; `pip install pyrealsense2` when you enable record_realsense.
+# RealSense comes from apt (ros-noetic-realsense2-camera, above): the ROS node
+# drives the camera and the recorder subscribes to its topics, so pyrealsense2
+# is not needed.
 # focal's stock pip (20.0.2) doesn't understand the manylinux_2_28 tag on the
 # pypylon wheel — upgrade pip ONLY. (Do not upgrade setuptools: catkin's
 # interrogate_setup_dot_py.py needs the apt setuptools, which is pinned to the
